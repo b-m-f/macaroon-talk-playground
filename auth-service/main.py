@@ -23,9 +23,12 @@ app = Flask(__name__)
 
 @app.route("/get-identifier", methods=["POST"])
 def add_identifier():
-    data = json.loads(request.data)
-    identifiers["needs_auth"] = data
-    return "needs_auth"
+    # save hash for every user here
+    data = request.data
+    json_data = json.loads(data)
+    hash = hashlib.md5(data).hexdigest()
+    identifiers[hash] = json_data
+    return hash
 
 
 @app.route("/login/<user>")
@@ -45,14 +48,22 @@ def login(user):
         # by using the caveat_key that was
         # agreed on with the asset server when it started
         # and added the third party caveat
+        # to do this we first need to get the identifier out
+        # of the macaroon,
+        # usually a service that wants to satisy these
+        # would go through all 3rd party caveats
+        # check their location
+        # and then authorize at the correct service
+        identifier = macaroon.third_party_caveats()[0].caveat_id
         discharge = Macaroon(
             "http://localhost:2222/",
-            identifiers["needs_auth"]["caveat_key"],
-            "needs_auth",
+            identifiers[identifier]["caveat_key"],
+            identifier,
         )
+
         discharge.add_first_party_caveat("time < " + now_plus_1)
-        macaroon.prepare_for_request(discharge)
-        response = jsonify({"macaroon": macaroon.serialize()})
+        bound_macaroon = macaroon.prepare_for_request(discharge)
+        response = jsonify({"macaroon": bound_macaroon.serialize()})
         response.headers.add("Access-Control-Allow-Origin", "*")
         return response
     if user == "bob":
