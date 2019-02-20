@@ -20,12 +20,14 @@ main =
 type Model
   = Failure String
   | Loading
+  | Macaroon String
   | Success String
+  | Base
 
 init : () -> (Model, Cmd Msg)
 init _ =
  (
-   Loading,
+   Base,
    Cmd.none
  )
 
@@ -33,10 +35,10 @@ init _ =
 
 stringDecoder : Decoder String
 stringDecoder =
-  field "status" string
+  field "macaroon" string
 
 
-type Msg = GetImageAlice | LoginAlice | GotText (Result Http.Error String) | GotMacaroon (Result Http.Error String)
+type Msg = GetImageAlice String | LoginAlice | GotText (Result Http.Error String) | GotMacaroon (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -49,18 +51,18 @@ update msg model =
         , expect = Http.expectJson GotMacaroon stringDecoder
         }
       )
-    GetImageAlice ->
+    GetImageAlice macaroon ->
       (
         Loading, Http.get
         {
-          url = "http://localhost:1111/image/alice.jpg"
+          url = "http://localhost:1111/image/alice.jpg?macaroon=" ++ macaroon
         , expect = Http.expectString GotText
         }
       )
     GotMacaroon result ->
       case result of
         Ok macaroon->
-          (Success macaroon, Cmd.none)
+          (Macaroon macaroon, Cmd.none)
         Err error ->
           (Failure "failed", Cmd.none)
     GotText result ->
@@ -83,21 +85,29 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   case model of
-    Loading ->
+    Base ->
       div []
         [ button [ onClick LoginAlice ] [ text "Log in Alice" ],
-          button [ onClick GetImageAlice ] [ text "Get Image for Alice" ],
-        div [] [ text "Loading Image"]
+          div [] [ text "Welcome"]
+      ]
+
+    Loading ->
+      div []
+        [
+          div [] [ text "Loading Image"]
       ]
     Failure error ->
       div []
         [ button [ onClick LoginAlice ] [ text "Log in Alice" ],
-          button [ onClick GetImageAlice ] [ text "Get Image for Alice" ],
           div [] [ text error ]
       ]
     Success image ->
       div []
-        [ button [ onClick LoginAlice ] [ text "Log in Alice" ],
-          button [ onClick GetImageAlice ] [ text "Get Image for Alice" ],
-          div [] [ text image ]
+          [ div [] [ text image ]
+      ]
+    Macaroon macaroon ->
+      div []
+        [ 
+          button [ onClick (GetImageAlice macaroon) ] [ text "Get Image for Alice" ],
+          div [] [ text macaroon]
       ]

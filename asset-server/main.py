@@ -1,46 +1,60 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from pymacaroons import Macaroon, Verifier
+import urllib.request
+import json
 
-keys = {
-    "key-for-alice": "WOW-a-very-secret-signing-key",
-    "key-for-bob": "WOW-another-very-secret-signing-key",
-}
+auth_url = "http://localhost:2222/"
 
-macaroon1 = Macaroon(
-    location="cool-picture-service.example.com",
+
+keys = {"key-for-alice": "alice_secret"}
+
+alice_macaroon = Macaroon(
+    location="cool-assets",
     identifier="key-for-alice",
     key=keys["key-for-alice"],
 )
-macaroon2 = Macaroon(
-    location="cool-picture-service.example.com",
-    identifier="key-for-bob",
-    key=keys["key-for-bob"],
-)
 
-macaroon1.add_first_party_caveat("picture_id = picture_for_alice.jpg")
-macaroon2.add_first_party_caveat("picture_id = picture_for_bob.jpg")
+alice_macaroon.add_first_party_caveat("picture_ids = alice.jpg")
 
-print(macaroon1.inspect())
-print(macaroon2.inspect())
 
-serialized1 = macaroon1.serialize()
-serialized2 = macaroon1.serialize()
+caveat_key = "alice"
+identifier = "alice"
+alice_macaroon.add_third_party_caveat(auth_url, caveat_key, identifier)
+print("ALICE MACAROON with 3rd party auth:")
+print(alice_macaroon.inspect())
 
-print(serialized1)
-print(serialized2)
 
 app = Flask(__name__)
 
-
-@app.route("/macaroon-for-alice")
-def macaroon_1():
-    return serialized1
+# get macaroon for user with third party caveat
 
 
-@app.route("/macaroon-for-bob")
-def macaroon_2():
-    return serialized2
+@app.route("/get-unauthorized-macaroon/<user>")
+def get_access(user):
+    try:
+        if user == "alice":
+            return alice_macaroon.serialize()
+
+    except Exception:
+        return "Error"
+
+
+@app.route("/image/alice.jpg")
+def get_alice_image():
+    macaroon = Macaroon.deserialize(request.args["macaroon"])
+    # print("ALICE MACAROON that is authorized")
+    print(macaroon.inspect())
+    # print(macaroon.signature_bytes)
+    ## verfiy macaroon
+    verifier = Verifier(discharge_macaroons=[macaroon])
+    is_verified = verifier.verify(
+        alice_macaroon, keys[alice_macaroon.identifier]
+    )
+    print(is_verified)
+    # if ok do
+    # else throw
+    return "True"
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=1111)

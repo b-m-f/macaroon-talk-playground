@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify, Response
-from pymacaroons import Macaroon, Verifier
 import urllib.request
 import json
 import hashlib
 import datetime
+from pymacaroons import Macaroon, Verifier
 
 
 identifiers = {}
@@ -24,11 +24,11 @@ app = Flask(__name__)
 @app.route("/get-identifier", methods=["POST"])
 def add_identifier():
     # save hash for every user here
-    data = request.data
+    data = request.data.decode("utf-8")
     json_data = json.loads(data)
-    hash = hashlib.md5(data).hexdigest()
-    identifiers[hash] = json_data
-    return hash
+    # hash_string = hashlib.md5(data.encode("utf-8")).hexdigest()
+    identifiers["alice"] = json_data
+    return "alice"
 
 
 @app.route("/login/<user>")
@@ -44,6 +44,7 @@ def login(user):
                 "http://localhost:1111/get-unauthorized-macaroon/alice"
             ).read()
         )
+        print(macaroon.inspect())
         # create a macaroon that confirms authentification
         # by using the caveat_key that was
         # agreed on with the asset server when it started
@@ -54,15 +55,17 @@ def login(user):
         # would go through all 3rd party caveats
         # check their location
         # and then authorize at the correct service
-        identifier = macaroon.third_party_caveats()[0].caveat_id
         discharge = Macaroon(
-            "http://localhost:2222/",
-            identifiers[identifier]["caveat_key"],
-            identifier,
+            location="http://localhost:2222/", key="alice", identifier="alice"
         )
 
         discharge.add_first_party_caveat("time < " + now_plus_1)
         bound_macaroon = macaroon.prepare_for_request(discharge)
+        print(bound_macaroon.inspect())
+        verifier = Verifier(discharge_macaroons=[macaroon])
+        is_verified = verifier.verify(macaroon, "key-for-alice")
+        print(is_verified)
+
         response = jsonify({"macaroon": bound_macaroon.serialize()})
         response.headers.add("Access-Control-Allow-Origin", "*")
         return response
@@ -79,4 +82,4 @@ def login(user):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=2222)
+    app.run(host="1.0.0.0", port=2222)
