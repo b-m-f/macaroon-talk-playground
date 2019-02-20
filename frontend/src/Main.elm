@@ -2,6 +2,8 @@ import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Http
+import Json.Decode exposing (Decoder, field, string)
+import Debug
 
 
 main =
@@ -29,7 +31,12 @@ init _ =
 
 -- UPDATE
 
-type Msg = GetImageAlice | LoginAlice | GotText (Result Http.Error String)
+stringDecoder : Decoder String
+stringDecoder =
+  field "status" string
+
+
+type Msg = GetImageAlice | LoginAlice | GotText (Result Http.Error String) | GotMacaroon (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -39,7 +46,7 @@ update msg model =
         Loading, Http.get
         {
           url = "http://localhost:2222/login/alice"
-        , expect = Http.expectString GotText
+        , expect = Http.expectJson GotMacaroon stringDecoder
         }
       )
     GetImageAlice ->
@@ -50,16 +57,18 @@ update msg model =
         , expect = Http.expectString GotText
         }
       )
+    GotMacaroon result ->
+      case result of
+        Ok macaroon->
+          (Success macaroon, Cmd.none)
+        Err error ->
+          (Failure "failed", Cmd.none)
     GotText result ->
       case result of
         Ok image ->
           (Success image, Cmd.none)
         Err error ->
-          case error of
-            Http.NetworkError ->
-              (Failure (Debug.toString error), Cmd.none)
-            _ ->
-              (Failure "failed", Cmd.none)
+          (Failure "failed", Cmd.none)
 
 -- SUBSCRIPTIONS
 
