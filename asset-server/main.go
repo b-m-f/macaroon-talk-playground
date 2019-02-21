@@ -10,7 +10,16 @@ import (
 	"gopkg.in/macaroon.v2"
 )
 
+// First we create the root macaroon which allows access to all Photos
+var root_macaroon *macaroon.Macaroon
+
 func main() {
+	var err error
+	root_macaroon, err = macaroon.New([]byte("AliceKey"), []byte("root"), "http://localhost:8080", 2)
+	if err != nil {
+		panic(err)
+	}
+	root_macaroon.AddFirstPartyCaveat([]byte("photos = all"))
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)
@@ -23,12 +32,27 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 }
 func Macaroon(w http.ResponseWriter, r *http.Request) {
-	root_macaroon, err := macaroon.New([]byte("AliceKey"), []byte("root"), "http://localhost:8080", macaroon.LatestVersion)
-	root_macaroon_marshal, err := root_macaroon.MarshalBinary()
+	// add third party caveat
+	// this should ideally be done by sending a caveat_key and predicate
+	// to the auth server and retrieving an identifier
+	// which then gets added together with the caveat_key
+	// In this case we use simple cleartext identifier
+	// and caveat key as hardcoded values,
+	// that we can use in both services
+	root_macaroon.AddThirdPartyCaveat([]byte("Alice3rdKey"), []byte("Auth = tops"), "http://localhost:9999")
+	var discharges []*macaroon.Macaroon
+
+	err := root_macaroon.Verify([]byte("AliceKey"), func(caveat string) error {
+		if caveat != "photos = all" {
+			return fmt.Errorf("Verification failed")
+		} else {
+			return nil
+		}
+	}, discharges)
 
 	if err != nil {
-		fmt.Fprintf(w, "macaroon, %q", err)
+		fmt.Fprintf(w, "Error:, %q", err)
+	} else {
+		fmt.Fprintf(w, "Success, %q", "Here is your picture")
 	}
-
-	fmt.Fprintf(w, "macaroon, %q", root_macaroon_marshal)
 }
