@@ -5055,7 +5055,7 @@ function _Browser_load(url)
 		}
 	}));
 }
-var author$project$Main$Loading = {$: 'Loading'};
+var author$project$Main$Base = {$: 'Base'};
 var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$True = {$: 'True'};
 var elm$core$Result$isOk = function (result) {
@@ -5534,15 +5534,21 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$init = function (_n0) {
-	return _Utils_Tuple2(author$project$Main$Loading, elm$core$Platform$Cmd$none);
+	return _Utils_Tuple2(author$project$Main$Base, elm$core$Platform$Cmd$none);
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$Main$subscriptions = function (model) {
 	return elm$core$Platform$Sub$none;
 };
+var author$project$Main$DischargeMacaroon = function (a) {
+	return {$: 'DischargeMacaroon', a: a};
+};
 var author$project$Main$Failure = function (a) {
 	return {$: 'Failure', a: a};
+};
+var author$project$Main$GotDischargeMacaroon = function (a) {
+	return {$: 'GotDischargeMacaroon', a: a};
 };
 var author$project$Main$GotMacaroon = function (a) {
 	return {$: 'GotMacaroon', a: a};
@@ -5550,30 +5556,12 @@ var author$project$Main$GotMacaroon = function (a) {
 var author$project$Main$GotText = function (a) {
 	return {$: 'GotText', a: a};
 };
+var author$project$Main$Loading = {$: 'Loading'};
+var author$project$Main$Macaroon = function (a) {
+	return {$: 'Macaroon', a: a};
+};
 var author$project$Main$Success = function (a) {
 	return {$: 'Success', a: a};
-};
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$string = _Json_decodeString;
-var author$project$Main$stringDecoder = A2(elm$json$Json$Decode$field, 'success', elm$json$Json$Decode$string);
-var elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return elm$core$Result$Err(
-				f(e));
-		}
-	});
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
-var elm$core$Basics$identity = function (x) {
-	return x;
 };
 var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
@@ -6129,6 +6117,58 @@ var elm$http$Http$Sending = function (a) {
 	return {$: 'Sending', a: a};
 };
 var elm$http$Http$Timeout_ = {$: 'Timeout_'};
+var elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2(elm$json$Json$Encode$encode, 0, value));
+};
+var elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n0, obj) {
+					var k = _n0.a;
+					var v = _n0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Main$encodeNewComment = function (macaroon) {
+	return elm$http$Http$jsonBody(
+		elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'macaroon',
+					elm$json$Json$Encode$string(macaroon))
+				])));
+};
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$string = _Json_decodeString;
+var author$project$Main$stringDecoder = A2(elm$json$Json$Decode$field, 'macaroon', elm$json$Json$Decode$string);
+var elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return elm$core$Result$Err(
+				f(e));
+		}
+	});
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
 var elm$http$Http$expectStringResponse = F2(
 	function (toMsg, toResult) {
 		return A3(
@@ -6443,31 +6483,59 @@ var elm$http$Http$get = function (r) {
 	return elm$http$Http$request(
 		{body: elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: elm$core$Maybe$Nothing, tracker: elm$core$Maybe$Nothing, url: r.url});
 };
+var elm$http$Http$post = function (r) {
+	return elm$http$Http$request(
+		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: elm$core$Maybe$Nothing, tracker: elm$core$Maybe$Nothing, url: r.url});
+};
 var author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'LoginAlice':
+			case 'GetMacaroon':
 				return _Utils_Tuple2(
 					author$project$Main$Loading,
 					elm$http$Http$get(
 						{
 							expect: A2(elm$http$Http$expectJson, author$project$Main$GotMacaroon, author$project$Main$stringDecoder),
-							url: 'http://localhost:2222/login/alice'
+							url: 'http://localhost:8080/macaroon'
 						}));
-			case 'GetImageAlice':
+			case 'Login':
+				var macaroon = msg.a;
+				return _Utils_Tuple2(
+					author$project$Main$Loading,
+					elm$http$Http$post(
+						{
+							body: author$project$Main$encodeNewComment(macaroon),
+							expect: A2(elm$http$Http$expectJson, author$project$Main$GotDischargeMacaroon, author$project$Main$stringDecoder),
+							url: 'http://localhost:9999/login'
+						}));
+			case 'GetImage':
+				var macaroon = msg.a;
 				return _Utils_Tuple2(
 					author$project$Main$Loading,
 					elm$http$Http$get(
 						{
 							expect: elm$http$Http$expectString(author$project$Main$GotText),
-							url: 'http://localhost:1111/image/alice.jpg'
+							url: 'http://localhost:1111/image/alice.jpg?macaroon=' + macaroon
 						}));
 			case 'GotMacaroon':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
 					var macaroon = result.a;
 					return _Utils_Tuple2(
-						author$project$Main$Success(macaroon),
+						author$project$Main$Macaroon(macaroon),
+						elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$Failure('failed'),
+						elm$core$Platform$Cmd$none);
+				}
+			case 'GotDischargeMacaroon':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var macaroon = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$DischargeMacaroon(macaroon),
 						elm$core$Platform$Cmd$none);
 				} else {
 					var error = result.a;
@@ -6490,8 +6558,13 @@ var author$project$Main$update = F2(
 				}
 		}
 	});
-var author$project$Main$GetImageAlice = {$: 'GetImageAlice'};
-var author$project$Main$LoginAlice = {$: 'LoginAlice'};
+var author$project$Main$GetImage = function (a) {
+	return {$: 'GetImage', a: a};
+};
+var author$project$Main$GetMacaroon = {$: 'GetMacaroon'};
+var author$project$Main$Login = function (a) {
+	return {$: 'Login', a: a};
+};
 var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -6530,7 +6603,7 @@ var elm$html$Html$Events$onClick = function (msg) {
 };
 var author$project$Main$view = function (model) {
 	switch (model.$) {
-		case 'Loading':
+		case 'Base':
 			return A2(
 				elm$html$Html$div,
 				_List_Nil,
@@ -6540,22 +6613,52 @@ var author$project$Main$view = function (model) {
 						elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Main$LoginAlice)
+								elm$html$Html$Events$onClick(author$project$Main$GetMacaroon)
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('Get Macaroon')
+							])),
+						A2(
+						elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								elm$html$Html$text('First we need to get a macaroon')
+							]))
+					]));
+		case 'Macaroon':
+			var macaroon = model.a;
+			return A2(
+				elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(
+								author$project$Main$Login(macaroon))
 							]),
 						_List_fromArray(
 							[
 								elm$html$Html$text('Log in Alice')
 							])),
 						A2(
-						elm$html$Html$button,
+						elm$html$Html$div,
+						_List_Nil,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Main$GetImageAlice)
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Get Image for Alice')
-							])),
+								elm$html$Html$text('Welcome')
+							]))
+					]));
+		case 'Loading':
+			return A2(
+				elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
 						A2(
 						elm$html$Html$div,
 						_List_Nil,
@@ -6575,32 +6678,38 @@ var author$project$Main$view = function (model) {
 						elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Main$LoginAlice)
+								elm$html$Html$Events$onClick(author$project$Main$GetMacaroon)
 							]),
 						_List_fromArray(
 							[
-								elm$html$Html$text('Log in Alice')
-							])),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Main$GetImageAlice)
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Get Image for Alice')
+								elm$html$Html$text('Get Macaroon')
 							])),
 						A2(
 						elm$html$Html$div,
 						_List_Nil,
 						_List_fromArray(
 							[
-								elm$html$Html$text(error)
+								elm$html$Html$text(error),
+								elm$html$Html$text(' Try again from the start')
+							]))
+					]));
+		case 'Success':
+			var image = model.a;
+			return A2(
+				elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								elm$html$Html$text(image)
 							]))
 					]));
 		default:
-			var image = model.a;
+			var macaroon = model.a;
 			return A2(
 				elm$html$Html$div,
 				_List_Nil,
@@ -6610,17 +6719,8 @@ var author$project$Main$view = function (model) {
 						elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Main$LoginAlice)
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Log in Alice')
-							])),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Main$GetImageAlice)
+								elm$html$Html$Events$onClick(
+								author$project$Main$GetImage(macaroon))
 							]),
 						_List_fromArray(
 							[
@@ -6631,7 +6731,7 @@ var author$project$Main$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								elm$html$Html$text(image)
+								elm$html$Html$text(macaroon)
 							]))
 					]));
 	}
@@ -6854,7 +6954,6 @@ var elm$browser$Debugger$Overlay$viewProblemType = function (_n0) {
 var elm$html$Html$a = _VirtualDom_node('a');
 var elm$html$Html$p = _VirtualDom_node('p');
 var elm$html$Html$ul = _VirtualDom_node('ul');
-var elm$json$Json$Encode$string = _Json_wrap;
 var elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -9421,19 +9520,6 @@ var elm$browser$Debugger$History$encode = function (_n0) {
 			elm$core$List$reverse(recent.messages),
 			snapshots));
 };
-var elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			elm$core$List$foldl,
-			F2(
-				function (_n0, obj) {
-					var k = _n0.a;
-					var v = _n0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
 var elm$browser$Debugger$Metadata$encodeAlias = function (_n0) {
 	var args = _n0.args;
 	var tipe = _n0.tipe;
@@ -10264,7 +10350,7 @@ var elm$browser$Browser$element = _Browser_element;
 var author$project$Main$main = elm$browser$Browser$element(
 	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
 _Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{},"unions":{"Main.Msg":{"args":[],"tags":{"GetImageAlice":[],"LoginAlice":[],"GotText":["Result.Result Http.Error String.String"],"GotMacaroon":["Result.Result Http.Error String.String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}}}}})}});}(this));
+	elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.0"},"types":{"message":"Main.Msg","aliases":{},"unions":{"Main.Msg":{"args":[],"tags":{"GetImage":["String.String"],"Login":["String.String"],"GetMacaroon":[],"GotText":["Result.Result Http.Error String.String"],"GotMacaroon":["Result.Result Http.Error String.String"],"GotDischargeMacaroon":["Result.Result Http.Error String.String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}}}}})}});}(this));
 
 var app = Elm.Main.init({ node: document.getElementById("elm-f0111bc4e658d0f98db96260c16f7e49") });
 if (document.getElementById("elm-f0111bc4e658d0f98db96260c16f7e49"))

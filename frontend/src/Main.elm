@@ -1,8 +1,9 @@
 import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-import Http
+import Http 
 import Json.Decode exposing (Decoder, field, string)
+import Json.Encode
 import Debug
 
 
@@ -20,9 +21,10 @@ main =
 type Model
   = Failure String
   | Loading
-  | Macaroon String
+  | DischargeMacaroon String
   | Success String
   | Base
+  | Macaroon String
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -38,20 +40,39 @@ stringDecoder =
   field "macaroon" string
 
 
-type Msg = GetImageAlice String | LoginAlice | GotText (Result Http.Error String) | GotMacaroon (Result Http.Error String)
+
+encodeNewComment : String -> Http.Body
+encodeNewComment macaroon =
+    Http.jsonBody <|
+        Json.Encode.object
+            [ 
+             ( "macaroon", Json.Encode.string macaroon)
+            ]
+
+
+type Msg = GetImage String | Login String | GetMacaroon | GotText (Result Http.Error String) | GotMacaroon (Result Http.Error String) | GotDischargeMacaroon (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    LoginAlice ->
+    GetMacaroon ->
       (
         Loading, Http.get
         {
-          url = "http://localhost:2222/login/alice"
+          url = "http://localhost:8080/macaroon"
         , expect = Http.expectJson GotMacaroon stringDecoder
         }
       )
-    GetImageAlice macaroon ->
+    Login macaroon ->
+      (
+        Loading, Http.post
+        {
+          url = "http://localhost:9999/login"
+        , body = (encodeNewComment macaroon)
+        , expect = Http.expectJson GotDischargeMacaroon stringDecoder
+        }
+      )
+    GetImage macaroon ->
       (
         Loading, Http.get
         {
@@ -63,6 +84,12 @@ update msg model =
       case result of
         Ok macaroon->
           (Macaroon macaroon, Cmd.none)
+        Err error ->
+          (Failure "failed", Cmd.none)
+    GotDischargeMacaroon result ->
+      case result of
+        Ok macaroon->
+          (DischargeMacaroon macaroon, Cmd.none)
         Err error ->
           (Failure "failed", Cmd.none)
     GotText result ->
@@ -87,7 +114,13 @@ view model =
   case model of
     Base ->
       div []
-        [ button [ onClick LoginAlice ] [ text "Log in Alice" ],
+        [ button [ onClick GetMacaroon] [ text "Get Macaroon" ],
+          div [] [ text "First we need to get a macaroon"]
+      ]
+
+    Macaroon macaroon ->
+      div []
+        [ button [ onClick (Login macaroon)] [ text "Log in Alice" ],
           div [] [ text "Welcome"]
       ]
 
@@ -98,16 +131,16 @@ view model =
       ]
     Failure error ->
       div []
-        [ button [ onClick LoginAlice ] [ text "Log in Alice" ],
-          div [] [ text error ]
+        [ button [ onClick GetMacaroon ] [ text "Get Macaroon" ],
+          div [] [ text error, text " Try again from the start" ]
       ]
     Success image ->
       div []
           [ div [] [ text image ]
       ]
-    Macaroon macaroon ->
+    DischargeMacaroon macaroon ->
       div []
         [ 
-          button [ onClick (GetImageAlice macaroon) ] [ text "Get Image for Alice" ],
+          button [ onClick (GetImage macaroon) ] [ text "Get Image for Alice" ],
           div [] [ text macaroon]
       ]
