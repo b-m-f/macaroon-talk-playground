@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"gopkg.in/macaroon.v2"
 )
 
 func main() {
@@ -26,17 +26,23 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 
 		return
 	} else {
-		type macaroon_json struct {
-			macaroon string
+		type MacaroonJSON struct {
+			Macaroon string
 		}
-		decoder := json.NewDecoder(r.Body)
-		//"gopkg.in/macaroon.v2"
-		fmt.Printf("%v", r.Body)
-		var t macaroon_json
-		err := decoder.Decode(&t)
+		var requestData MacaroonJSON
+		err := json.NewDecoder(r.Body).Decode(&requestData)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		log.Print("\n")
+		log.Print(requestData)
+
+		macaroonObject, err := macaroon.New([]byte("test"), []byte("test"), "", 2)
+
+		macaroonObject.UnmarshalJSON([]byte(requestData.Macaroon))
+
+		marshal, err := macaroonObject.MarshalJSON()
+
+		fmt.Fprintf(w, "Hello, %q", marshal)
 	}
 }
