@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"log"
@@ -20,18 +21,6 @@ func main() {
 		panic(err)
 	}
 	root_macaroon.AddFirstPartyCaveat([]byte("photos = all"))
-
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", Index)
-	router.HandleFunc("/macaroon", Macaroon)
-	fmt.Printf("Starting server for assets at 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
-}
-
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-}
-func Macaroon(w http.ResponseWriter, r *http.Request) {
 	// add third party caveat
 	// this should ideally be done by sending a caveat_key and predicate
 	// to the auth server and retrieving an identifier
@@ -40,6 +29,31 @@ func Macaroon(w http.ResponseWriter, r *http.Request) {
 	// and caveat key as hardcoded values,
 	// that we can use in both services
 	root_macaroon.AddThirdPartyCaveat([]byte("Alice3rdKey"), []byte("Auth = tops"), "http://localhost:9999")
+
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/", Index)
+	router.HandleFunc("/get-image", GetImage)
+	router.HandleFunc("/macaroon", Macaroon)
+	fmt.Printf("Starting server for assets at 8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func Index(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+}
+
+func Macaroon(w http.ResponseWriter, r *http.Request) {
+	root_macaroon_json, err := root_macaroon.MarshalJSON()
+	if err != nil {
+		fmt.Fprintf(w, "Error:, %q", err)
+	} else {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"macaroon": string(root_macaroon_json)})
+	}
+}
+
+func GetImage(w http.ResponseWriter, r *http.Request) {
 	var discharges []*macaroon.Macaroon
 
 	err := root_macaroon.Verify([]byte("AliceKey"), func(caveat string) error {
@@ -53,6 +67,7 @@ func Macaroon(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "Error:, %q", err)
 	} else {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		fmt.Fprintf(w, "Success, %q", "Here is your picture")
 	}
 }
