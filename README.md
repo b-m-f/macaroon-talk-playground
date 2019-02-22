@@ -8,6 +8,15 @@ If users authenticate successfully via the authentification service, they should
 For simplicity the Frontend will first get the undischarged Macaroon from the Asset server.
 
 
+## Running the code
+You will need both [golang]() and [elm](https://guide.elm-lang.org/install.html) installed.
+Go was used due to its rapid development capabilities and Types providing good compiler feedback for understanding the Macaroon library implementation better.
+Elm lang has very good Refactoring capabilities, which made it a good fit for exploring and experimenting.
+
+
+Run both the asset and auth server with `go run`.
+The Frontend can be build with `elm make src/Main.elm` which provides an `index.html `or loaded for development with `elm reactor`, in which case it will be at `http://localhost:8000/src/Main.elm`.
+
 
 ## Flow
 - user goes to asset and gets a macaroon
