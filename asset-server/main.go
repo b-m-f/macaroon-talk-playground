@@ -28,7 +28,7 @@ func main() {
 	// In this case we use simple cleartext identifier
 	// and caveat key as hardcoded values,
 	// that we can use in both services
-	root_macaroon.AddThirdPartyCaveat([]byte("Alice3rdKey"), []byte("Auth = tops"), "http://localhost:9999")
+	root_macaroon.AddThirdPartyCaveat([]byte("Alice3rdKey"), []byte("Auth"), "http://localhost:9999")
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)

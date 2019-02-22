@@ -37,12 +37,26 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		log.Print("\n")
 		log.Print(requestData)
 
-		macaroonObject, err := macaroon.New([]byte("test"), []byte("test"), "", 2)
+		receivedRootMacaroonObject, err := macaroon.New([]byte("test"), []byte("test"), "", 2)
 
-		macaroonObject.UnmarshalJSON([]byte(requestData.Macaroon))
+		// here we use the previously hardcoded value from the asset server,
+		// which in a real use case has to be previously agreed
+		// between these two services by using this services public key
+		// or another mechanism
+		newAuthMacaroonObject, err := macaroon.New([]byte("Alice3rdKey"), []byte("Auth"), "http://localhost:9999", 2)
 
-		marshal, err := macaroonObject.MarshalJSON()
+		receivedRootMacaroonObject.UnmarshalJSON([]byte(requestData.Macaroon))
 
-		fmt.Fprintf(w, "Hello, %q", marshal)
+		newAuthMacaroonObject.Bind(receivedRootMacaroonObject.Signature())
+		newAuthJSON, err := newAuthMacaroonObject.MarshalJSON()
+
+		if err != nil {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			fmt.Fprintf(w, "Error:, %q", err)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"macaroon": string(newAuthJSON)})
+		}
 	}
 }
