@@ -5,7 +5,7 @@ import Http
 import Json.Decode exposing (Decoder, field, string)
 import Json.Encode
 import Debug
-
+import Url.Builder 
 
 main =
     Browser.element {
@@ -41,8 +41,8 @@ stringDecoder =
 
 
 
-encodeNewComment : String -> Http.Body
-encodeNewComment macaroon =
+encodeMacaroon: String -> Http.Body
+encodeMacaroon macaroon =
     Http.jsonBody <|
         Json.Encode.object
             [ 
@@ -68,7 +68,7 @@ update msg model =
         Loading, Http.post
         {
           url = "http://localhost:9999/login"
-        , body = (encodeNewComment macaroon)
+        , body = (encodeMacaroon macaroon)
         , expect = Http.expectJson GotDischargeMacaroon stringDecoder
         }
       )
@@ -76,7 +76,7 @@ update msg model =
       (
         Loading, Http.get
         {
-          url = "http://localhost:1111/image/alice.jpg?macaroon=" ++ macaroon
+          url = "http://localhost:8080/get-image" ++ (Url.Builder.toQuery [Url.Builder.string "macaroon" macaroon])
         , expect = Http.expectString GotText
         }
       )
@@ -121,7 +121,7 @@ view model =
     Macaroon macaroon ->
       div []
         [ button [ onClick (Login macaroon)] [ text "Log in Alice" ],
-          div [] [ text "Welcome"]
+          div [] [ text "Now we have received the asset server macaroon, which has a third party caveat. This caveat has a URL which tells us where we can satisfy this requirement. So lets do it"]
       ]
 
     Loading ->
@@ -142,5 +142,5 @@ view model =
       div []
         [ 
           button [ onClick (GetImage macaroon) ] [ text "Get Image for Alice" ],
-          div [] [ text macaroon]
+          div [] [ text "Perfect, we have successfully authenticated and can now use our discharge macaroon, and the original one, to request an image from the asset server"]
       ]
