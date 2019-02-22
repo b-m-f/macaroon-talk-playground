@@ -55,23 +55,32 @@ func _Macaroon(w http.ResponseWriter, r *http.Request) {
 
 func _GetImage(w http.ResponseWriter, r *http.Request) {
 	receivedDischargeMacaroon, err := macaroon.New([]byte("test"), []byte("test"), "", 2)
-	dischargeMacaroonJSON := r.FormValue("macaroon")
-	receivedDischargeMacaroon.UnmarshalJSON([]byte(dischargeMacaroonJSON))
-	log.Print(receivedDischargeMacaroon)
-	var discharges = []*macaroon.Macaroon{receivedDischargeMacaroon}
-
-	verificationError := rootMacaroon.Verify([]byte("AliceKey"), func(caveat string) error {
-		if caveat != "photos = all" {
-			return fmt.Errorf("Verification failed")
-		}
-		return nil
-
-	}, discharges)
-
-	if verificationError != nil {
+	if err != nil {
 		fmt.Fprintf(w, "Error:, %q", err)
+		return
+	}
+	if r.FormValue("macaroon") != "" {
+		dischargeMacaroonJSON := r.FormValue("macaroon")
+		receivedDischargeMacaroon.UnmarshalJSON([]byte(dischargeMacaroonJSON))
+		log.Print(receivedDischargeMacaroon)
+		var discharges = []*macaroon.Macaroon{receivedDischargeMacaroon}
+
+		verificationError := rootMacaroon.Verify([]byte("AliceKey"), func(caveat string) error {
+			if caveat != "photos = all" {
+				return fmt.Errorf("Verification failed")
+			}
+			return nil
+
+		}, discharges)
+
+		if verificationError != nil {
+			fmt.Fprintf(w, "Error:, %q", verificationError)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			fmt.Fprintf(w, "Success, %q", "Here is your picture")
+		}
 	} else {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		fmt.Fprintf(w, "Success, %q", "Here is your picture")
+		fmt.Fprintf(w, "Error: Please provide a valid Discharge Macaroon to prove you have access")
+
 	}
 }
